@@ -1,0 +1,32 @@
+{
+  "name": "roastify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:migrate": "supabase db push"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kathrina-dev/Roastify.git"
+  },
+  "keywords": [],
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Kathrina-dev/Roastify/issues"
+  },
+  "homepage": "https://github.com/Kathrina-dev/Roastify#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0",
+    "dotenv": "^18.0.0",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14"
+  },
+  "devDependencies": {
+    "supabase": "^2.117.0"
+  }
+}
