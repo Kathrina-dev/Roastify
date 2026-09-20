@@ -24,6 +24,10 @@ export async function generateRoast({
 		{
 			model: OPENROUTER_MODEL,
 
+			reasoning: {
+				enabled: false
+			},
+
 			messages: [
 				{
 	role: 'system',
