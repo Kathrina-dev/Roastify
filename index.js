@@ -2,8 +2,12 @@ import express from 'express';
 import axios from 'axios';
 import crypto from 'node:crypto';
 import 'dotenv/config';
+import userRoutes from './routes/users.js';
 
 const app = express();
+
+app.use(express.json());
+app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -123,10 +127,12 @@ app.get('/callback', async (req, res) => {
             message: 'Spotify authentication successful',
 
             profile: {
-                account_id: profileResponse.data.account_id,
+                account_id: profileResponse.data.id,
                 display_name: profileResponse.data.display_name,
                 spotify_id: profileResponse.data.id
             },
+
+            spotifyProfile: profileResponse.data,
 
             top_artists: artistsResponse.data.items.map(
                 artist => ({
@@ -134,6 +140,7 @@ app.get('/callback', async (req, res) => {
                     genres: artist.genres
                 })
             ),
+            topArtists: artistsResponse.data.items,
 
             top_tracks: tracksResponse.data.items.map(
                 track => ({
@@ -141,6 +148,7 @@ app.get('/callback', async (req, res) => {
                     artist: track.artists[0]?.name
                 })
             ),
+            topTracks: tracksResponse.data.items,
 
             expires_in,
 
