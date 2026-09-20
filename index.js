@@ -158,33 +158,9 @@ app.get('/callback', async (req, res) => {
 
         res.json({
             message: 'Spotify authentication successful',
-
-            profile: {
-                account_id: spotifyUser.id,
-                display_name: spotifyUser.display_name,
-                spotify_id: spotifyUser.id
-            },
-
             spotifyProfile: spotifyUser,
-
-            top_artists: topArtists.map(
-                artist => ({
-                    name: artist.name,
-                    genres: artist.genres
-                })
-            ),
-
             topArtists,
-
-            top_tracks: topTracks.map(
-                track => ({
-                    name: track.name,
-                    artist: track.artists[0]?.name
-                })
-            ),
-
             topTracks,
-
             snapshot,
 
             expires_in
