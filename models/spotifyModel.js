@@ -90,17 +90,23 @@ export async function findLatestRoast({ userId }) {
 	return data?.[0] ?? null;
 }
 
-export async function createRoastForSnapshot({ userId, snapshotId, roastContent }) {
+export async function createRoastForSnapshot({
+	userId,
+	snapshotId,
+	roastContent
+}) {
 	const payload = {
 		user_id: userId,
 		snapshot_id: snapshotId,
 		roast_content: roastContent,
-		updated_at: new Date().toISOString(),
+		updated_at: new Date().toISOString()
 	};
 
 	const { data, error } = await supabase
 		.from('roasts')
-		.insert([payload])
+		.upsert([payload], {
+			onConflict: 'snapshot_id'
+		})
 		.select()
 		.single();
 
@@ -110,7 +116,6 @@ export async function createRoastForSnapshot({ userId, snapshotId, roastContent 
 
 	return data;
 }
-
 export async function findRoast({ userId }) {
 	return findLatestRoast({ userId });
 }
