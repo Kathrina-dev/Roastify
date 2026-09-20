@@ -116,6 +116,7 @@ export async function createRoastForSnapshot({
 
 	return data;
 }
+
 export async function findRoast({ userId }) {
 	return findLatestRoast({ userId });
 }

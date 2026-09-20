@@ -150,7 +150,7 @@ export async function getRoast(req, res) {
 				userId: user.user_id,
 				snapshotId:
 					snapshot.snapshot_id,
-				roastContent: roastText
+				roastContent: JSON.stringify(roastText)
 			});
 
 		return res.status(200).json({
