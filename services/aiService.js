@@ -9,7 +9,7 @@ const OPENROUTER_API_KEY =
 
 const OPENROUTER_MODEL =
 	process.env.OPENROUTER_MODEL ||
-	'nvidia/nemotron-3-ultra-550b-a55b:free';
+	'google/gemma-4-26b-a4b-it:free';
 
 if (!OPENROUTER_API_KEY) {
 	throw new Error('Missing OPENROUTER_API_KEY');
@@ -128,7 +128,6 @@ export async function generateRoast({
 			temperature: 1.1,
 			max_tokens: 1000
 		},
-
 		{
 			headers: {
 				Authorization:
