@@ -1,4 +1,5 @@
-import { RoastContent, RoastResponse, StoryCard } from "./types";
+import { RoastContent, RoastResponse, StoryCard, Snapshot } from "./types";
+import { getTopTrackArtwork, getArtistArtwork, getSpotifyImage } from "./artworkUtils";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://roastify.kathrinaelangbam.xyz";
@@ -16,7 +17,7 @@ export async function fetchRoast(userId: string): Promise<RoastResponse> {
   return res.json();
 }
 
-export function parseRoastIntoCards(roastContentRaw: string): StoryCard[] {
+export function parseRoastIntoCards(roastContentRaw: string, snapshot?: Snapshot): StoryCard[] {
   let roast: RoastContent;
 
   try {
@@ -67,24 +68,30 @@ export function parseRoastIntoCards(roastContentRaw: string): StoryCard[] {
       type: "crime",
       title: "Biggest Crime",
       content: roast.biggestCrime,
+      imageUrls: snapshot ? getTopTrackArtwork(snapshot.top_tracks, 4) : undefined,
     });
   }
 
   if (roast.culpritRoast) {
+    const topArtistImg = snapshot?.top_artists?.[0] ? getArtistArtwork(snapshot.top_artists[0]) : null;
+    const topTrackImg = snapshot?.top_tracks?.[0] ? getSpotifyImage(snapshot.top_tracks[0]) : null;
     cards.push({
       id: "culprit",
       type: "culprit",
       title: "The Usual Suspect",
       content: roast.culpritRoast,
+      imageUrls: topArtistImg ? [topArtistImg] : (topTrackImg ? [topTrackImg] : undefined),
     });
   }
 
   if (roast.trackRoast) {
+    const topTrackImg = snapshot?.top_tracks?.[0] ? getSpotifyImage(snapshot.top_tracks[0]) : null;
     cards.push({
       id: "track",
       type: "track",
       title: "Guilty Pleasures",
       content: roast.trackRoast,
+      imageUrls: topTrackImg ? [topTrackImg] : undefined,
     });
   }
 
@@ -103,16 +110,19 @@ export function parseRoastIntoCards(roastContentRaw: string): StoryCard[] {
       type: "whiplash",
       title: "Genre Whiplash",
       content: roast.whiplash,
+      imageUrls: snapshot ? getTopTrackArtwork(snapshot.top_tracks, 3) : undefined,
     });
   }
 
   if (roast.redFlags?.length) {
+    // Red flags gets some decorative small artworks
     cards.push({
       id: "redflags",
       type: "redflags",
       title: "Red Flags 🚩",
       content: roast.redFlags.join("\n"),
       items: roast.redFlags,
+      imageUrls: snapshot ? getTopTrackArtwork(snapshot.top_tracks, 3) : undefined,
     });
   }
 
@@ -122,6 +132,7 @@ export function parseRoastIntoCards(roastContentRaw: string): StoryCard[] {
       type: "sentence",
       title: "Final Sentence",
       content: roast.finalSentence,
+      imageUrls: snapshot ? getTopTrackArtwork(snapshot.top_tracks, 6) : undefined,
     });
   }
 

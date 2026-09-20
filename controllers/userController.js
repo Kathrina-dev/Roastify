@@ -194,9 +194,13 @@ export async function getLatestRoast(req, res) {
 				error: 'No roast found for this user'
 			});
 		}
+		
+		// Fetch latest snapshot to provide artwork to frontend
+		const snapshot = await spotifyModel.findLatestSnapshot({ userId });
 
 		return res.status(200).json({
-			roast
+			roast,
+			snapshot
 		});
 
 	} catch (error) {

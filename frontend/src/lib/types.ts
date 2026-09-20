@@ -39,6 +39,7 @@ export interface RoastResponse {
   roast: {
     roast_content: string;
   };
+  snapshot?: Snapshot;
 }
 
 export interface StoryCard {
@@ -56,5 +57,6 @@ export interface StoryCard {
   title: string;
   content: string;
   items?: string[];
+  imageUrls?: string[];
   metadata?: Record<string, string>;
 }

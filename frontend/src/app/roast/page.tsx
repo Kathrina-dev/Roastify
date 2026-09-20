@@ -37,7 +37,7 @@ function RoastPageContent() {
         if (cancelled) return;
 
         const roastContent = response.roast.roast_content;
-        const parsedCards = parseRoastIntoCards(roastContent);
+        const parsedCards = parseRoastIntoCards(roastContent, response.snapshot);
         setCards(parsedCards);
       } catch (err: unknown) {
         if (cancelled) return;
