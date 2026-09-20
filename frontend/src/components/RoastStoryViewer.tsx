@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { StoryCard as StoryCardType } from "@/lib/types";
 import RoastCard from "./RoastCard";
-import { ChevronLeft, ChevronRight, Share2, RotateCcw, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Share2, RotateCcw, Copy, Play, Pause } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 
 interface RoastStoryViewerProps {
@@ -100,6 +100,15 @@ export default function RoastStoryViewer({ cards, onRestart }: RoastStoryViewerP
             Roastify
           </span>
           <div className="flex gap-3">
+            <button 
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={() => setIsPaused(p => !p)} 
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-md" 
+              title={isPaused ? "Play" : "Pause"}
+            >
+              {isPaused ? <Play className="w-4 h-4 fill-white" /> : <Pause className="w-4 h-4 fill-white" />}
+            </button>
             <button onClick={handleCopy} className="p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-md" title="Copy Roast">
               <Copy className="w-4 h-4" />
             </button>
