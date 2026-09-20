@@ -9,7 +9,7 @@ const OPENROUTER_API_KEY =
 
 const OPENROUTER_MODEL =
 	process.env.OPENROUTER_MODEL ||
-	'google/gemma-4-26b-a4b-it:free';
+	'qwen/qwen3.8-27b:free';
 
 if (!OPENROUTER_API_KEY) {
 	throw new Error('Missing OPENROUTER_API_KEY');
@@ -81,6 +81,7 @@ Do not say "based on your Spotify data", "the analysis shows",
 Roast like their Spotify history was leaked into the group chat.
 `;
 
+
 export async function generateRoast({
 	topArtists = [],
 	topTracks = [],
@@ -111,7 +112,56 @@ export async function generateRoast({
 			},
 
 			response_format: {
-				type: 'json_object'
+				type: 'json_schema',
+				json_schema: {
+					name: 'roastify_roast',
+					strict: true,
+					schema: {
+						type: 'object',
+						additionalProperties: false,
+						properties: {
+							verdict: {
+								type: 'string'
+							},
+							biggestCrime: {
+								type: 'string'
+							},
+							culpritRoast: {
+								type: 'string'
+							},
+							trackRoast: {
+								type: 'string'
+							},
+							personality: {
+								type: 'string'
+							},
+							whiplash: {
+								type: 'string'
+							},
+							redFlags: {
+								type: 'array',
+								items: {
+									type: 'string'
+								},
+								minItems: 3,
+								maxItems: 3
+							},
+							finalSentence: {
+								type: 'string'
+							}
+						},
+						required: [
+							'verdict',
+							'biggestCrime',
+							'culpritRoast',
+							'trackRoast',
+							'personality',
+							'whiplash',
+							'redFlags',
+							'finalSentence'
+						]
+					}
+				}
 			},
 
 			messages: [
