@@ -3,10 +3,14 @@ import crypto from 'node:crypto';
 
 import * as userModel from '../models/userModel.js';
 import * as spotifyModel from '../models/spotifyModel.js';
+import * as aiService from '../services/aiService.js';
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
+const FRONTEND_URL =
+	process.env.FRONTEND_URL ||
+	'https://roastify-beta.vercel.app';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -30,13 +34,15 @@ export async function callback(req, res) {
 	const { code, error } = req.query;
 
 	if (error) {
-		return res.status(400).json({ error });
+		return res.redirect(
+			`${FRONTEND_URL}/roast?error=${encodeURIComponent('Spotify authorization was denied')}`
+		);
 	}
 
 	if (!code) {
-		return res.status(400).json({
-			error: 'No authorization code returned by Spotify'
-		});
+		return res.redirect(
+			`${FRONTEND_URL}/roast?error=${encodeURIComponent('No authorization code returned by Spotify')}`
+		);
 	}
 
 	try {
@@ -109,12 +115,33 @@ export async function callback(req, res) {
 
 		// 5. Reuse snapshot if it is less than 7 days old
 		if (snapshotIsFresh) {
-			return res.json({
-				message: 'Spotify snapshot reused',
-				spotifyUser,
-				snapshot: latestSnapshot,
-				expires_in
-			});
+			// Check if a roast already exists for this snapshot
+			let existingRoast =
+				await spotifyModel.findRoastBySnapshotId({
+					snapshotId: latestSnapshot.snapshot_id
+				});
+
+			if (!existingRoast) {
+				// Generate and save roast
+				const roastText =
+					await aiService.generateRoast({
+						topArtists:
+							latestSnapshot.top_artists,
+						topTracks:
+							latestSnapshot.top_tracks
+					});
+
+				await spotifyModel.createRoastForSnapshot({
+					userId: user.user_id,
+					snapshotId:
+						latestSnapshot.snapshot_id,
+					roastContent: JSON.stringify(roastText)
+				});
+			}
+
+			return res.redirect(
+				`${FRONTEND_URL}/roast?userId=${encodeURIComponent(user.user_id)}`
+			);
 		}
 
 		// 6. Fetch fresh Spotify data
@@ -162,23 +189,35 @@ export async function callback(req, res) {
 					tracksResponse.data.items
 			});
 
-		return res.json({
-			message:
-				'Spotify authentication successful',
-			spotifyUser,
-			snapshot,
-			expires_in
+		// 8. Generate and save roast for new snapshot
+		const roastText =
+			await aiService.generateRoast({
+				topArtists:
+					artistsResponse.data.items,
+				topTracks:
+					tracksResponse.data.items
+			});
+
+		await spotifyModel.createRoastForSnapshot({
+			userId: user.user_id,
+			snapshotId: snapshot.snapshot_id,
+			roastContent: JSON.stringify(roastText)
 		});
 
-	} catch (error) {
-		console.error(
-			'Spotify authentication error:',
-			error.response?.data ||
-				error.message
+		// 9. Redirect to frontend with userId
+		return res.redirect(
+			`${FRONTEND_URL}/roast?userId=${encodeURIComponent(user.user_id)}`
 		);
 
-		return res.status(500).json({
-			error: 'Spotify authentication failed'
-		});
+	} catch (err) {
+		console.error(
+			'Spotify authentication error:',
+			err.response?.data ||
+				err.message
+		);
+
+		return res.redirect(
+			`${FRONTEND_URL}/roast?error=${encodeURIComponent('Something went wrong during authentication. Please try again.')}`
+		);
 	}
 }

@@ -24,6 +24,17 @@ export interface Snapshot {
   top_tracks: Track[];
 }
 
+export interface RoastContent {
+  verdict: string;
+  biggestCrime: string;
+  culpritRoast: string;
+  trackRoast: string;
+  personality: string;
+  whiplash: string;
+  redFlags: [string, string, string];
+  finalSentence: string;
+}
+
 export interface RoastResponse {
   roast: {
     roast_content: string;
@@ -32,8 +43,18 @@ export interface RoastResponse {
 
 export interface StoryCard {
   id: string;
-  type: 'cover' | 'artists' | 'tracks' | 'personality' | 'verdict';
+  type:
+    | "cover"
+    | "verdict"
+    | "crime"
+    | "culprit"
+    | "track"
+    | "personality"
+    | "whiplash"
+    | "redflags"
+    | "sentence";
   title: string;
   content: string;
-  metadata?: any;
+  items?: string[];
+  metadata?: Record<string, string>;
 }

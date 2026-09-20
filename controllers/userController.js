@@ -172,3 +172,41 @@ export async function getRoast(req, res) {
 		});
 	}
 }
+
+export async function getLatestRoast(req, res) {
+	try {
+		const userId = readValue(req, ['userId']);
+
+		if (!userId) {
+			return res.status(400).json({
+				error: 'Provide userId'
+			});
+		}
+
+		// Fetch latest roast — read-only, no re-generation
+		const roast =
+			await spotifyModel.findLatestRoast({
+				userId
+			});
+
+		if (!roast) {
+			return res.status(404).json({
+				error: 'No roast found for this user'
+			});
+		}
+
+		return res.status(200).json({
+			roast
+		});
+
+	} catch (error) {
+		console.error(
+			'Roast fetch error:',
+			error.message
+		);
+
+		return res.status(500).json({
+			error: 'Failed to fetch roast'
+		});
+	}
+}

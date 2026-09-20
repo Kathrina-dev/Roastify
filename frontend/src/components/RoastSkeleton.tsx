@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { Flame } from "lucide-react";
 
 const LOADING_MESSAGES = [
-  "Analyzing your questionable taste in 2010 pop...",
+  "Pulling up your Spotify receipts...",
+  "Analyzing your questionable taste...",
   "Judging your top played tracks...",
   "Crafting maximum damage roasts...",
-  "Calculating your Scoville spice level...",
   "Consulting the roast masters...",
-  "Gasping at your Spotify receipts...",
+  "This is gonna be brutal...",
 ];
 
 export default function RoastSkeleton() {

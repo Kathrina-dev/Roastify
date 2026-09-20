@@ -1,91 +1,129 @@
-import { RoastResponse, StoryCard } from "./types";
+import { RoastContent, RoastResponse, StoryCard } from "./types";
 
-const MOCK_ROAST = `Oh wow, another user whose top artist is Taylor Swift. Groundbreaking. Your music taste is the equivalent of a beige wall. You pretend to be edgy by throwing in a single Arctic Monkeys track from 2013, but we all know you cry to Olivia Rodrigo in the shower.
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://roastify.kathrinaelangbam.xyz";
 
-Your top tracks scream "I peaked in high school and I'm still trying to reclaim that feeling." It's almost sad how predictable you are. You probably think you have a diverse music taste because you listen to both pop AND indie pop. Newsflash: it's all just pop.
+export async function fetchRoast(userId: string): Promise<RoastResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/users/roast?userId=${encodeURIComponent(userId)}`
+  );
 
-I would tell you to expand your horizons, but honestly, I don't think you could handle it. Stick to your safe little bubble of algorithmic recommendations. The Spotify algorithm knows you better than you know yourself, and frankly, it's disappointed.`;
-
-export async function generateRoast(username: string): Promise<RoastResponse> {
-  try {
-    const res = await fetch('/api/users/roast', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ spotifyUsername: username }),
-    });
-
-    if (!res.ok) {
-      // If the backend fails (e.g. no Spotify credentials or user not found), return mock data
-      console.warn('Backend failed to generate roast, using mock data.');
-      return {
-        roast: {
-          roast_content: MOCK_ROAST
-        }
-      };
-    }
-
-    return await res.json();
-  } catch (err) {
-    console.error('Error generating roast, using mock data:', err);
-    return {
-      roast: {
-        roast_content: MOCK_ROAST
-      }
-    };
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to fetch roast");
   }
+
+  return res.json();
 }
 
-export function parseRoastIntoCards(roastContent: string): StoryCard[] {
-  // Simple paragraph splitter to simulate different story cards
-  const paragraphs = roastContent.split('\n\n').filter(p => p.trim() !== '');
-  
+export function parseRoastIntoCards(roastContentRaw: string): StoryCard[] {
+  let roast: RoastContent;
+
+  try {
+    roast =
+      typeof roastContentRaw === "string"
+        ? JSON.parse(roastContentRaw)
+        : roastContentRaw;
+  } catch {
+    // Fallback: treat the entire string as a verdict
+    return [
+      {
+        id: "cover",
+        type: "cover",
+        title: "Your Music Taste is Under Investigation",
+        content:
+          "We looked into your soul (Spotify data), and it's not pretty.",
+      },
+      {
+        id: "verdict",
+        type: "verdict",
+        title: "The Verdict",
+        content: roastContentRaw,
+      },
+    ];
+  }
+
   const cards: StoryCard[] = [];
-  
-  cards.push({
-    id: 'cover',
-    type: 'cover',
-    title: 'Your Music Taste is Under Investigation',
-    content: 'We looked into your soul (Spotify data), and it\'s not pretty.',
-  });
-
-  if (paragraphs.length > 0) {
-    cards.push({
-      id: 'artists',
-      type: 'artists',
-      title: 'The Usual Suspects',
-      content: paragraphs[0],
-    });
-  }
-
-  if (paragraphs.length > 1) {
-    cards.push({
-      id: 'tracks',
-      type: 'tracks',
-      title: 'Guilty Pleasures',
-      content: paragraphs[1],
-    });
-  }
-
-  if (paragraphs.length > 2) {
-    cards.push({
-      id: 'personality',
-      type: 'personality',
-      title: 'Vibe Check',
-      content: paragraphs.slice(2).join('\n\n'),
-    });
-  }
 
   cards.push({
-    id: 'verdict',
-    type: 'verdict',
-    title: 'Final Verdict',
-    content: '100% Basic.',
-    metadata: {
-      scoville: '100,000 SHU'
-    }
+    id: "cover",
+    type: "cover",
+    title: "Your Music Taste is Under Investigation",
+    content: "We looked into your soul (Spotify data), and it's not pretty.",
   });
+
+  if (roast.verdict) {
+    cards.push({
+      id: "verdict",
+      type: "verdict",
+      title: "The Verdict",
+      content: roast.verdict,
+    });
+  }
+
+  if (roast.biggestCrime) {
+    cards.push({
+      id: "crime",
+      type: "crime",
+      title: "Biggest Crime",
+      content: roast.biggestCrime,
+    });
+  }
+
+  if (roast.culpritRoast) {
+    cards.push({
+      id: "culprit",
+      type: "culprit",
+      title: "The Usual Suspect",
+      content: roast.culpritRoast,
+    });
+  }
+
+  if (roast.trackRoast) {
+    cards.push({
+      id: "track",
+      type: "track",
+      title: "Guilty Pleasures",
+      content: roast.trackRoast,
+    });
+  }
+
+  if (roast.personality) {
+    cards.push({
+      id: "personality",
+      type: "personality",
+      title: "Vibe Check",
+      content: roast.personality,
+    });
+  }
+
+  if (roast.whiplash) {
+    cards.push({
+      id: "whiplash",
+      type: "whiplash",
+      title: "Genre Whiplash",
+      content: roast.whiplash,
+    });
+  }
+
+  if (roast.redFlags?.length) {
+    cards.push({
+      id: "redflags",
+      type: "redflags",
+      title: "Red Flags 🚩",
+      content: roast.redFlags.join("\n"),
+      items: roast.redFlags,
+    });
+  }
+
+  if (roast.finalSentence) {
+    cards.push({
+      id: "sentence",
+      type: "sentence",
+      title: "Final Sentence",
+      content: roast.finalSentence,
+    });
+  }
 
   return cards;
 }
