@@ -3,6 +3,7 @@ import axios from 'axios';
 import crypto from 'node:crypto';
 import 'dotenv/config';
 import userRoutes from './routes/users.js';
+import * as userModel from './models/userModel.js';
 
 const app = express();
 
@@ -96,7 +97,7 @@ app.get('/callback', async (req, res) => {
                 }
             }
         );
-
+        
         const artistsResponse = await axios.get(
             'https://api.spotify.com/v1/me/top/artists',
             {
@@ -122,38 +123,71 @@ app.get('/callback', async (req, res) => {
                 }
             }
         );
+        
+        const spotifyUser = profileResponse.data;
+        const topArtists = artistsResponse.data.items;
+        const topTracks = tracksResponse.data.items;
+
+        // Find or create the Roastify user
+        let user = await userModel.findUser({
+            username: spotifyUser.id
+        });
+
+        if (!user) {
+            user = await userModel.createUser({
+                username: spotifyUser.id
+            });
+        }
+
+        // Save/update Spotify account
+        await userModel.upsertSpotifyAccount({
+            userId: user.user_id,
+            spotifyUserId: spotifyUser.id,
+            accountId: spotifyUser.account_id ?? spotifyUser.id,
+            displayName: spotifyUser.display_name ?? null,
+            spotifyProfile: spotifyUser
+        });
+
+        // Save Spotify snapshot
+        const snapshot = await userModel.createSnapshot({
+            userId: user.user_id,
+            timeRange: 'medium_term',
+            topArtists,
+            topTracks
+        });
 
         res.json({
             message: 'Spotify authentication successful',
 
             profile: {
-                account_id: profileResponse.data.id,
-                display_name: profileResponse.data.display_name,
-                spotify_id: profileResponse.data.id
+                account_id: spotifyUser.id,
+                display_name: spotifyUser.display_name,
+                spotify_id: spotifyUser.id
             },
 
-            spotifyProfile: profileResponse.data,
+            spotifyProfile: spotifyUser,
 
-            top_artists: artistsResponse.data.items.map(
+            top_artists: topArtists.map(
                 artist => ({
                     name: artist.name,
                     genres: artist.genres
                 })
             ),
-            topArtists: artistsResponse.data.items,
 
-            top_tracks: tracksResponse.data.items.map(
+            topArtists,
+
+            top_tracks: topTracks.map(
                 track => ({
                     name: track.name,
                     artist: track.artists[0]?.name
                 })
             ),
-            topTracks: tracksResponse.data.items,
 
-            expires_in,
+            topTracks,
 
-            // DON'T actually return this in production!
-            // refresh_token
+            snapshot,
+
+            expires_in
         });
 
     } catch (error) {

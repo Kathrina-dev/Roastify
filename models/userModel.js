@@ -99,10 +99,18 @@ export async function findLatestSnapshot({ userId }) {
 	return data?.[0] ?? null;
 }
 
-export async function createSnapshot({ userId, timeRange, fetchedAt }) {
+export async function createSnapshot({
+	userId,
+	timeRange,
+	topArtists = [],
+	topTracks = [],
+	fetchedAt,
+}) {
 	const payload = {
 		user_id: userId,
 		time_range: timeRange,
+		top_artists: topArtists,
+		top_tracks: topTracks,
 		fetched_at: fetchedAt ?? new Date().toISOString(),
 	};
 
@@ -111,60 +119,6 @@ export async function createSnapshot({ userId, timeRange, fetchedAt }) {
 		.insert([payload])
 		.select()
 		.single();
-
-	if (error) {
-		throw new Error(error.message);
-	}
-
-	return data;
-}
-
-export async function createSnapshotArtists({ snapshotId, artists = [] }) {
-	if (!Array.isArray(artists) || artists.length === 0) {
-		return [];
-	}
-
-	const payload = artists.map((artist, index) => ({
-		snapshot_id: snapshotId,
-		rank: index + 1,
-		spotify_artist_id: artist.spotifyArtistId ?? artist.id ?? null,
-		artist_name: artist.artistName ?? artist.name ?? '',
-		genres: artist.genres ?? [],
-		artist_data: artist.artistData ?? artist,
-	}));
-
-	const { data, error } = await supabase
-		.from('spotify_snapshot_artists')
-		.insert(payload)
-		.select();
-
-	if (error) {
-		throw new Error(error.message);
-	}
-
-	return data;
-}
-
-export async function createSnapshotTracks({ snapshotId, tracks = [] }) {
-	if (!Array.isArray(tracks) || tracks.length === 0) {
-		return [];
-	}
-
-	const payload = tracks.map((track, index) => ({
-		snapshot_id: snapshotId,
-		rank: index + 1,
-		spotify_track_id: track.spotifyTrackId ?? track.id ?? null,
-		track_name: track.trackName ?? track.name ?? '',
-		artist_name: track.artistName ?? track.artist ?? null,
-		album_name: track.albumName ?? track.album ?? null,
-		duration_ms: track.durationMs ?? track.duration_ms ?? null,
-		track_data: track.trackData ?? track,
-	}));
-
-	const { data, error } = await supabase
-		.from('spotify_snapshot_tracks')
-		.insert(payload)
-		.select();
 
 	if (error) {
 		throw new Error(error.message);

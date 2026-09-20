@@ -42,22 +42,14 @@ async function persistFreshSnapshot({
 			accountId: spotifyProfile.account_id ?? spotifyProfile.id,
 			displayName: spotifyProfile.display_name ?? null,
 			spotifyProfile,
-	});
+		});
 	}
 
 	const snapshot = await userModel.createSnapshot({
 		userId,
 		timeRange,
-	});
-
-	await userModel.createSnapshotArtists({
-		snapshotId: snapshot.snapshot_id,
-		artists: topArtists,
-	});
-
-	await userModel.createSnapshotTracks({
-		snapshotId: snapshot.snapshot_id,
-		tracks: topTracks,
+		topArtists,
+		topTracks,
 	});
 
 	return snapshot;
