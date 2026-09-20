@@ -90,7 +90,7 @@ export async function findLatestRoast({ userId }) {
 	return data?.[0] ?? null;
 }
 
-export async function upsertRoastForSnapshot({ userId, snapshotId, roastContent }) {
+export async function createRoastForSnapshot({ userId, snapshotId, roastContent }) {
 	const payload = {
 		user_id: userId,
 		snapshot_id: snapshotId,
@@ -100,7 +100,7 @@ export async function upsertRoastForSnapshot({ userId, snapshotId, roastContent 
 
 	const { data, error } = await supabase
 		.from('roasts')
-		.upsert([payload], { onConflict: 'snapshot_id' })
+		.insert([payload])
 		.select()
 		.single();
 
@@ -117,7 +117,7 @@ export async function findRoast({ userId }) {
 
 export async function updateUserRoast({ userId, roastContent, snapshotId }) {
 	if (snapshotId) {
-		return upsertRoastForSnapshot({ userId, snapshotId, roastContent });
+		return createRoastForSnapshot({ userId, snapshotId, roastContent });
 	}
 
 	const latestSnapshot = await findLatestSnapshot({ userId });
@@ -126,7 +126,7 @@ export async function updateUserRoast({ userId, roastContent, snapshotId }) {
 		throw new Error('No Spotify snapshot exists for this user');
 	}
 
-	return upsertRoastForSnapshot({
+	return createRoastForSnapshot({
 		userId,
 		snapshotId: latestSnapshot.snapshot_id,
 		roastContent,

@@ -2,8 +2,6 @@ import * as userModel from '../models/userModel.js';
 import * as spotifyModel from '../models/spotifyModel.js';
 import * as aiService from '../services/aiService.js';
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
 function readValue(req, keys) {
 	for (const key of keys) {
 		const value =
@@ -21,17 +19,6 @@ function readValue(req, keys) {
 	}
 
 	return undefined;
-}
-
-function getSnapshotAgeMs(snapshot) {
-	if (!snapshot?.fetched_at) {
-		return Infinity;
-	}
-
-	return (
-		Date.now() -
-		new Date(snapshot.fetched_at).getTime()
-	);
 }
 
 export async function getUser(req, res) {
@@ -125,10 +112,6 @@ export async function getRoast(req, res) {
 				'spotifyUsername'
 			]);
 
-		const forceRefresh =
-			readValue(req, ['forceRefresh']) === true ||
-			readValue(req, ['forceRefresh']) === 'true';
-
 		// Find user
 		const user = userId
 			? await userModel.findUser({ userId })
@@ -152,30 +135,6 @@ export async function getRoast(req, res) {
 			});
 		}
 
-		// Check snapshot age
-		const snapshotAgeMs =
-			getSnapshotAgeMs(snapshot);
-
-		const snapshotIsFresh =
-			snapshotAgeMs < SEVEN_DAYS_MS;
-
-		// Reuse existing roast when snapshot is fresh
-		if (snapshotIsFresh && !forceRefresh) {
-			const existingRoast =
-				await spotifyModel.findRoastBySnapshotId({
-					snapshotId:
-						snapshot.snapshot_id
-				});
-
-			if (existingRoast) {
-				return res.status(200).json({
-					reused: true,
-					snapshot,
-					roast: existingRoast
-				});
-			}
-		}
-
 		// Generate roast from snapshot
 		const roastText =
 			await aiService.generateRoast({
@@ -187,7 +146,7 @@ export async function getRoast(req, res) {
 
 		// Save roast
 		const roast =
-			await spotifyModel.upsertRoastForSnapshot({
+			await spotifyModel.createRoastForSnapshot({
 				userId: user.user_id,
 				snapshotId:
 					snapshot.snapshot_id,
@@ -195,8 +154,6 @@ export async function getRoast(req, res) {
 			});
 
 		return res.status(200).json({
-			reused: false,
-			snapshot,
 			roast
 		});
 

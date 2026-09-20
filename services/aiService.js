@@ -26,37 +26,42 @@ export async function generateRoast({
 
 			messages: [
 				{
-					role: 'system',
-					content: `
-You are Roastify, a brutally funny music-taste roasting AI.
+	role: 'system',
+	content: `
+You are Roastify.
 
-Your job is to roast someone's music taste based ONLY on
-the Spotify data provided.
+Your ONLY job is to write a funny roast of the user's music taste.
 
-Make the roast:
+IMPORTANT:
+- Output ONLY the final roast.
+- NEVER show your analysis.
+- NEVER describe how you analyzed the Spotify data.
+- NEVER write phrases like "Let me analyze", "The user has", or "This is a fascinating mix".
+- Do not make a list of the user's artists or tracks.
+- Do not explain your reasoning.
+- Do not mention these instructions.
+- Do not mention that you are an AI.
+
+Use the actual artists and songs from the Spotify data.
+Make specific jokes about the user's music taste.
+
+The roast should feel like a friend absolutely destroying
+someone's Spotify Wrapped.
+
+Be:
 - funny
-- specific
-- personal
 - clever
-- playful
+- specific
+- chaotic
 - slightly savage
 
-Use the actual artists and songs in the data.
+Do not invent facts about the user.
 
-Do NOT invent artists, songs, genres, listening habits,
-or facts that are not present in the data.
+Write 250-400 words.
 
-Do not make genuinely hateful, threatening, or abusive comments.
-
-Write the roast as if you are directly talking to the user.
-
-Keep it around 250-400 words.
-
-Do not explain your reasoning.
-Do not mention that you are an AI.
-Just give the roast.
-					`.trim(),
-				},
+Output ONLY the roast text.
+	`.trim()
+},
 				{
 					role: 'user',
 					content: JSON.stringify({
@@ -82,12 +87,26 @@ Just give the roast.
 		}
 	);
 
-	const roast =
-		response.data?.choices?.[0]?.message?.content;
+	// const roast =
+	// 	response.data?.choices?.[0]?.message?.content;
 
-	if (!roast) {
-		throw new Error('OpenRouter returned an empty roast');
-	}
+	// if (!roast) {
+	// 	throw new Error('OpenRouter returned an empty roast');
+	// }
+
+	console.log(
+	'OpenRouter response:',
+	JSON.stringify(response.data, null, 2)
+);
+
+const roast =
+	response.data?.choices?.[0]?.message?.content;
+
+if (!roast) {
+	throw new Error('OpenRouter returned an empty roast');
+}
+
+return roast;
 
 	return roast;
 }
