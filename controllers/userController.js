@@ -1,4 +1,5 @@
 import * as userModel from '../models/userModel.js';
+import * as aiService from '../services/aiService.js';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -118,13 +119,27 @@ export async function getSpotify(req, res) {
 export async function getRoast(req, res) {
 	try {
 		const userId = readValue(req, ['userId']);
-		const username = readValue(req, ['username', 'spotify_username', 'spotifyUsername']);
-		const roastContent = readValue(req, ['roastContent']);
-		const timeRange = readValue(req, ['timeRange']) ?? 'medium_term';
-		const spotifyProfile = readValue(req, ['spotifyProfile']);
-		const topArtists = readValue(req, ['topArtists']);
-		const topTracks = readValue(req, ['topTracks']);
-		const forceRefresh = Boolean(readValue(req, ['forceRefresh']));
+		const username = readValue(req, [
+			'username',
+			'spotify_username',
+			'spotifyUsername'
+		]);
+
+		const timeRange =
+			readValue(req, ['timeRange']) ?? 'medium_term';
+
+		const spotifyProfile =
+			readValue(req, ['spotifyProfile']);
+
+		const topArtists =
+			readValue(req, ['topArtists']);
+
+		const topTracks =
+			readValue(req, ['topTracks']);
+
+		const forceRefresh =
+			readValue(req, ['forceRefresh']) === true ||
+			readValue(req, ['forceRefresh']) === 'true';
 
 		const user = userId
 			? await userModel.findUser({ userId })
@@ -136,74 +151,92 @@ export async function getRoast(req, res) {
 			});
 		}
 
-		const latestSnapshot = await userModel.findLatestSnapshot({
-			userId: user.user_id,
-		});
-		const latestRoast = latestSnapshot
-			? await userModel.findRoastBySnapshotId({
-				snapshotId: latestSnapshot.snapshot_id,
-			})
-			: null;
-		const latestSnapshotAgeMs = getSnapshotAgeMs(latestSnapshot);
-		const canReuseLatestRoast =
-			!forceRefresh &&
-			latestSnapshot &&
-			latestRoast &&
-			latestSnapshotAgeMs < SEVEN_DAYS_MS &&
-			!hasFreshSpotifyPayload(spotifyProfile, topArtists, topTracks);
-
-		if (canReuseLatestRoast) {
-			return res.status(200).json({
-				reused: true,
-				snapshot: latestSnapshot,
-				roast: latestRoast,
+		const latestSnapshot =
+			await userModel.findLatestSnapshot({
+				userId: user.user_id,
 			});
-		}
 
-		const needsFreshSnapshot =
-			forceRefresh ||
-			!latestSnapshot ||
-			latestSnapshotAgeMs >= SEVEN_DAYS_MS;
+		const latestSnapshotAgeMs =
+			getSnapshotAgeMs(latestSnapshot);
+
+		const snapshotIsFresh =
+			latestSnapshot &&
+			latestSnapshotAgeMs < SEVEN_DAYS_MS;
+
+		if (snapshotIsFresh && !forceRefresh) {
+			const existingRoast =
+				await userModel.findRoastBySnapshotId({
+					snapshotId: latestSnapshot.snapshot_id,
+				});
+
+			if (existingRoast) {
+				return res.status(200).json({
+					reused: true,
+					snapshot: latestSnapshot,
+					roast: existingRoast,
+				});
+			}
+		}
 
 		let snapshot = latestSnapshot;
 
-		if (needsFreshSnapshot) {
-			if (!hasFreshSpotifyPayload(spotifyProfile, topArtists, topTracks)) {
+		if (
+			!snapshot ||
+			!snapshotIsFresh ||
+			forceRefresh
+		) {
+			// We need fresh Spotify data.
+			if (
+				!Array.isArray(topArtists) ||
+				!Array.isArray(topTracks)
+			) {
 				return res.status(409).json({
-					error: 'The latest Spotify snapshot is stale. Provide fresh Spotify data to create a new roast.',
+					error:
+						'Fresh Spotify data is required to create a new roast.',
 				});
 			}
 
-			snapshot = await persistFreshSnapshot({
-				userId: user.user_id,
-				timeRange,
-				spotifyProfile,
-				topArtists,
-				topTracks,
-			});
+			snapshot =
+				await persistFreshSnapshot({
+					userId: user.user_id,
+					timeRange,
+					spotifyProfile,
+					topArtists,
+					topTracks,
+				});
 		}
 
-		if (roastContent) {
-			const roast = await userModel.updateUserRoast({
-				userId: user.user_id,
-				roastContent,
-				snapshotId: snapshot?.snapshot_id,
+		const roastText =
+			await aiService.generateRoast({
+				topArtists: snapshot.top_artists,
+				topTracks: snapshot.top_tracks,
 			});
 
-			return res.status(200).json({
-				snapshot,
-				roast,
+		const roast =
+			await userModel.upsertRoastForSnapshot({
+				userId: user.user_id,
+				snapshotId: snapshot.snapshot_id,
+				roastContent: roastText,
 			});
-		}
 
 		return res.status(200).json({
+			reused: false,
 			snapshot,
-			roast: latestRoast,
-			message: snapshot ? 'Snapshot is ready. Provide roastContent to save a roast for this snapshot.' : 'No snapshot was available.',
+			roast,
 		});
+
 	} catch (error) {
+		console.error(
+			'Roast generation error:',
+			error.response?.data ||
+			error.message
+		);
+
 		return res.status(500).json({
-			error: error.message,
+			error: 'Failed to generate roast',
+			details:
+				error.response?.data?.error?.message ||
+				error.message,
 		});
 	}
 }

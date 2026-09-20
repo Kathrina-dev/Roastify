@@ -148,17 +148,31 @@ app.get('/callback', async (req, res) => {
             spotifyProfile: spotifyUser
         });
 
-        // Save Spotify snapshot
-        const snapshot = await userModel.createSnapshot({
-            userId: user.user_id,
-            timeRange: 'medium_term',
-            topArtists,
-            topTracks
+        const latestSnapshot = await userModel.findLatestSnapshot({
+            userId: user.user_id
         });
+
+        const snapshotAgeMs = latestSnapshot?.fetched_at
+            ? Date.now() - new Date(latestSnapshot.fetched_at).getTime()
+            : Infinity;
+
+        const snapshotIsFresh =
+            snapshotAgeMs < 7 * 24 * 60 * 60 * 1000;
+
+        let snapshot = latestSnapshot;
+
+        if (!snapshotIsFresh) {
+            snapshot = await userModel.createSnapshot({
+                userId: user.user_id,
+                timeRange: 'medium_term',
+                topArtists,
+                topTracks
+            });
+        }
 
         res.json({
             message: 'Spotify authentication successful',
-            spotifyProfile: spotifyUser,
+            spotifyUser,
             topArtists,
             topTracks,
             snapshot,
